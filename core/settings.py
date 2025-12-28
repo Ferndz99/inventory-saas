@@ -52,6 +52,8 @@ ACCESS_TOKEN_LIFETIME = int(env("ACCESS_TOKEN_LIFETIME"))  # type: ignore
 
 REFRESH_TOKEN_LIFETIME = int(env("REFRESH_TOKEN_LIFETIME"))  # type: ignore
 
+AUTH_USER_MODEL = "accounts.Account"
+
 
 """
 --------------------
@@ -88,6 +90,8 @@ INSTALLED_APPS = [
     "djoser",
     "django_filters",
     "djmoney",
+    # local
+    "accounts",
 ]
 
 MIDDLEWARE = [
