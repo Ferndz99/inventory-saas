@@ -16,7 +16,7 @@ class Account(AbstractBaseUser, PermissionsMixin):
 
     # TODO: Relacionar con el modelo Empresa/Company una vez creada la app de negocio.
     # El campo debería definirse como:
-    # company = models.ForeignKey('app.Company', on_delete=models.CASCADE, related_name="accounts", null=True)
+    company = models.ForeignKey('inventory.Company', on_delete=models.CASCADE, related_name="accounts", null=True)
 
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = []
