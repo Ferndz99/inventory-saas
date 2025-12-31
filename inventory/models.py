@@ -164,6 +164,7 @@ class Template(BaseModel):
                 "description": (ta.custom_attribute or ta.global_attribute).description,
                 "is_required": ta.is_required,
                 "order": ta.order,
+                "default_value": ta.default_value
             }
             for ta in attrs
         ]
