@@ -92,6 +92,7 @@ INSTALLED_APPS = [
     "djmoney",
     # local
     "accounts",
+    "inventory",
 ]
 
 MIDDLEWARE = [
