@@ -3,6 +3,8 @@ from decimal import Decimal, InvalidOperation
 
 from rest_framework import serializers
 
+from drf_spectacular.utils import extend_schema_field, inline_serializer
+
 from inventory.models import Product
 
 
@@ -273,6 +275,25 @@ class ProductDetailSerializer(ProductSerializer):
             "formatted_specifications",
         ]
 
+    @extend_schema_field(
+        inline_serializer(
+            name="TemplateStructure",
+            many=True,
+            fields={
+                "slug": serializers.CharField(),
+                "name": serializers.CharField(),
+                "data_type": serializers.CharField(),
+                "unit_of_measure": serializers.CharField(allow_null=True),
+                "description": serializers.CharField(allow_null=True),
+                "is_required": serializers.BooleanField(),
+                "order": serializers.IntegerField(),
+                "value": serializers.JSONField(
+                    allow_null=True
+                ),  # Puede ser de cualquier tipo
+                "default_value": serializers.CharField(allow_null=True),
+            },
+        )
+    )
     def get_template_structure(self, obj):
         """Return the template structure with current values"""
         template_attrs = (
@@ -301,6 +322,18 @@ class ProductDetailSerializer(ProductSerializer):
 
         return structure
 
+    @extend_schema_field(
+        inline_serializer(
+            name="StockByWarehouse",
+            many=True,
+            fields={
+                "warehouse_id": serializers.IntegerField(),
+                "warehouse_name": serializers.CharField(),
+                "quantity": serializers.DecimalField(max_digits=12, decimal_places=2),
+                "is_main": serializers.BooleanField(),
+            },
+        )
+    )
     def get_stock_by_warehouse(self, obj):
         """Get stock information by warehouse"""
         stock_records = obj.stock_records.select_related("warehouse").filter(
@@ -317,6 +350,18 @@ class ProductDetailSerializer(ProductSerializer):
             for sr in stock_records
         ]
 
+    @extend_schema_field(
+        inline_serializer(
+            name="FormattedSpecification",
+            many=True,
+            fields={
+                "label": serializers.CharField(),
+                "value": serializers.JSONField(),  # Usamos JSONField si el valor puede ser núm o string
+                "unit": serializers.CharField(allow_null=True),
+                "formatted": serializers.CharField(),
+            },
+        )
+    )
     def get_formatted_specifications(self, obj):
         """
         Return specifications formatted with labels and units.

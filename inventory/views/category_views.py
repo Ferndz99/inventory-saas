@@ -12,7 +12,87 @@ from inventory.models import Category
 from inventory.serializers import CategorySerializer, ProductListSerializer
 from inventory.permissions import IsCompanyMember, IsAdminOrReadOnly
 
+from drf_spectacular.utils import extend_schema, extend_schema_view
 
+from inventory.utils import (
+    error_400,
+    error_401,
+    error_403,
+    error_404,
+    error_500,
+    success_200,
+    success_201,
+    success_204,
+)
+
+
+@extend_schema(tags=["Categorias del Sistema"])
+@extend_schema_view(
+    list=extend_schema(
+        summary="List",
+        responses={
+            **success_200(CategorySerializer, many=True),
+            **error_401("category"),
+            **error_403("category"),
+            **error_500("category"),
+        },
+    ),
+    create=extend_schema(
+        summary="Create (Admin)",
+        request=CategorySerializer,
+        responses={
+            **success_201(CategorySerializer),
+            **error_400("category"),
+            **error_401("category"),
+            **error_403("category"),
+            **error_500("category"),
+        },
+    ),
+    retrieve=extend_schema(
+        summary="Retrieve",
+        responses={
+            **success_200(CategorySerializer),
+            **error_401("category", is_detail=True),
+            **error_403("category", is_detail=True),
+            **error_404("category", is_detail=True),
+            **error_500("category", is_detail=True),
+        },
+    ),
+    update=extend_schema(
+        summary="Edit (Admin)",
+        request=CategorySerializer,
+        responses={
+            **success_200(CategorySerializer),
+            **error_400("category", is_detail=True),
+            **error_401("category", is_detail=True),
+            **error_403("category", is_detail=True),
+            **error_404("category", is_detail=True),
+            **error_500("category", is_detail=True),
+        },
+    ),
+    partial_update=extend_schema(
+        summary="Edit partial (Admin)",
+        request=CategorySerializer,
+        responses={
+            **success_200(CategorySerializer),
+            **error_400("category", is_detail=True),
+            **error_401("category", is_detail=True),
+            **error_403("category", is_detail=True),
+            **error_404("category", is_detail=True),
+            **error_500("category", is_detail=True),
+        },
+    ),
+    destroy=extend_schema(
+        summary="Delete (Admin)",
+        responses={
+            **success_204(),
+            **error_401("category", is_detail=True),
+            **error_403("category", is_detail=True),
+            **error_404("category", is_detail=True),
+            **error_500("category", is_detail=True),
+        },
+    ),
+)
 class CategoryViewSet(viewsets.ModelViewSet):
     """
     Category management.
@@ -32,6 +112,17 @@ class CategoryViewSet(viewsets.ModelViewSet):
             company=self.request.user.company, is_active=True
         ).annotate(product_count=Count("products", filter=Q(products__is_active=True)))
 
+    @extend_schema(
+        summary="Listar productos por categoría",
+        description="Obtiene todos los productos activos asociados a una categoría específica con paginación.",
+        responses={
+            **success_200(ProductListSerializer, many=True),
+            **error_401("category", action="products", is_detail=True),
+            **error_403("category", action="products", is_detail=True),
+            **error_404("category", action="products", is_detail=True),
+            **error_500("category", action="products", is_detail=True),
+        },
+    )
     @action(detail=True, methods=["get"])
     def products(self, request, pk=None):
         """Get all products in this category"""

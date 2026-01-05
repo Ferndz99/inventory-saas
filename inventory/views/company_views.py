@@ -5,11 +5,12 @@ from django.db.models import (
     DecimalField,
 )
 
-from rest_framework import viewsets
+from rest_framework import viewsets, serializers
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import action
 
+from drf_spectacular.utils import extend_schema, extend_schema_view, inline_serializer
 
 from inventory.models import (
     Category,
@@ -21,8 +22,31 @@ from inventory.models import (
 )
 from inventory.serializers import CompanySerializer
 from inventory.permissions import IsCompanyMember
+from inventory.utils import error_401, error_403, error_404, error_500, success_200
 
 
+@extend_schema(tags=["Company"])
+@extend_schema_view(
+    list=extend_schema(
+        summary="List",
+        responses={
+            **success_200(CompanySerializer, many=True),
+            **error_401("company"),
+            **error_403("company"),
+            **error_500("company"),
+        },
+    ),
+    retrieve=extend_schema(
+        summary="Retrieve",
+        responses={
+            **success_200(CompanySerializer),
+            **error_401("company", is_detail=True),
+            **error_403("company", is_detail=True),
+            **error_404("company", is_detail=True),
+            **error_500("company", is_detail=True),
+        },
+    ),
+)
 class CompanyViewSet(viewsets.ReadOnlyModelViewSet):
     """
     Company viewset - read-only for users.
@@ -38,6 +62,30 @@ class CompanyViewSet(viewsets.ReadOnlyModelViewSet):
             return Company.objects.filter(id=self.request.user.company.id)
         return Company.objects.none()
 
+    @extend_schema(
+        summary="Company stats",
+        description="get stats ",
+        responses={
+            **success_200(
+                inline_serializer(
+                    name="CompanyStatsResponse",
+                    fields={
+                        "total_products": serializers.IntegerField(),
+                        "total_categories": serializers.IntegerField(),
+                        "total_warehouses": serializers.IntegerField(),
+                        "total_templates": serializers.IntegerField(),
+                        "low_stock_products": serializers.IntegerField(),
+                        "total_stock_value": serializers.DecimalField(
+                            max_digits=12, decimal_places=2
+                        ),
+                    },
+                )
+            ),
+            **error_401("company", action="stats"),
+            **error_403("company", action="stats"),
+            **error_500("company", action="stats"),
+        },
+    )
     @action(detail=False, methods=["get"])
     def stats(self, request):
         """Get company statistics"""

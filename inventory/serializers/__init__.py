@@ -19,3 +19,4 @@ from .template_serializers import (
     TemplateSerializer,
 )
 from .warehouse_serializers import WarehouseSerializer
+from .error_serializers import AccountProblemDetailsSerializer

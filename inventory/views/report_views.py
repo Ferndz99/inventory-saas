@@ -1,15 +1,18 @@
 from django.utils import timezone
 from django.db.models import Q, Sum, F, Count, ExpressionWrapper, DecimalField, QuerySet
 
-from rest_framework import viewsets
+from rest_framework import viewsets, serializers
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 
+from drf_spectacular.utils import extend_schema, inline_serializer, OpenApiParameter
+from drf_spectacular.types import OpenApiTypes
+
 from inventory.models import Category, StockMovement, StockRecord, Product
 from inventory.permissions import IsCompanyMember
 from inventory.serializers import ProductListSerializer
-
+from inventory.utils import error_401, error_403, error_500, success_200
 
 
 class ReportViewSet(viewsets.ViewSet):
@@ -19,7 +22,50 @@ class ReportViewSet(viewsets.ViewSet):
 
     permission_classes = [IsAuthenticated, IsCompanyMember]
 
-    @action(detail=False, methods=["get"])
+    @extend_schema(
+        tags=["Reports"],
+        summary="Valuación de inventario",
+        description=(
+            "Calcula el valor total del inventario a precio de costo, "
+            "desglosado por almacén y consolidado de forma global."
+        ),
+        responses={
+            **success_200(
+                inline_serializer(
+                    name="InventoryValuationResponse",
+                    fields={
+                        "total_value": serializers.DecimalField(
+                            max_digits=20, decimal_places=2
+                        ),
+                        "total_items": serializers.DecimalField(
+                            max_digits=20, decimal_places=2
+                        ),
+                        "generated_at": serializers.DateTimeField(),
+                        "by_warehouse": serializers.DictField(
+                            child=inline_serializer(
+                                name="WarehouseValuation",
+                                fields={
+                                    "warehouse_id": serializers.IntegerField(),
+                                    "products": serializers.IntegerField(),
+                                    "total_items": serializers.DecimalField(
+                                        max_digits=20, decimal_places=2
+                                    ),
+                                    "total_value": serializers.DecimalField(
+                                        max_digits=20, decimal_places=2
+                                    ),
+                                },
+                            ),
+                            help_text="Mapa donde la llave es el nombre del almacén",
+                        ),
+                    },
+                )
+            ),
+            **error_401("report", action="inventory_valuation"),
+            **error_403("report", action="inventory_valuation"),
+            **error_500("report", action="inventory_valuation"),
+        },
+    )
+    @action(detail=False, methods=["get"], url_path="inventory-valuation")
     def inventory_valuation(self, request):
         """
         Get current inventory valuation.
@@ -69,7 +115,43 @@ class ReportViewSet(viewsets.ViewSet):
             }
         )
 
-    @action(detail=False, methods=["get"])
+    @extend_schema(
+        tags=["Reports"],
+        summary="Alertas de inventario",
+        description=(
+            "Consolida productos en estado crítico: aquellos con stock bajo el mínimo "
+            "y aquellos que están totalmente agotados."
+        ),
+        responses={
+            **success_200(
+                inline_serializer(
+                    name="StockAlertsResponse",
+                    fields={
+                        "low_stock": inline_serializer(
+                            name="LowStockAlert",
+                            fields={
+                                "count": serializers.IntegerField(),
+                                "products": ProductListSerializer(many=True),
+                            },
+                        ),
+                        "out_of_stock": inline_serializer(
+                            name="OutOfStockAlert",
+                            fields={
+                                "count": serializers.IntegerField(),
+                                "products": ProductListSerializer(many=True),
+                            },
+                        ),
+                        "generated_at": serializers.DateTimeField(),
+                    },
+                ),
+                description="Resumen de alertas generado exitosamente",
+            ),
+            **error_401("report", action="stock_alerts"),
+            **error_403("report", action="stock_alerts"),
+            **error_500("report", action="stock_alerts"),
+        },
+    )
+    @action(detail=False, methods=["get"], url_path="stock-alerts")
     def stock_alerts(self, request):
         """
         Get all stock alerts (low stock, out of stock).
@@ -104,7 +186,81 @@ class ReportViewSet(viewsets.ViewSet):
             }
         )
 
-    @action(detail=False, methods=["get"])
+    @extend_schema(
+        tags=["Reports"],
+        summary="Reporte analítico de movimientos",
+        description=(
+            "Genera estadísticas agregadas de los movimientos de inventario en un rango de fechas, "
+            "desglosados por tipo de movimiento, motivo y los productos con mayor actividad."
+        ),
+        parameters=[
+            OpenApiParameter(
+                name="date_from",
+                type=OpenApiTypes.DATE,
+                location=OpenApiParameter.QUERY,
+                description="Fecha de inicio para el reporte (YYYY-MM-DD)",
+            ),
+            OpenApiParameter(
+                name="date_to",
+                type=OpenApiTypes.DATE,
+                location=OpenApiParameter.QUERY,
+                description="Fecha de fin para el reporte (YYYY-MM-DD)",
+            ),
+        ],
+        responses={
+            **success_200(
+                inline_serializer(
+                    name="MovementReportResponse",
+                    fields={
+                        "date_from": serializers.CharField(allow_null=True),
+                        "date_to": serializers.CharField(allow_null=True),
+                        "total_movements": serializers.IntegerField(),
+                        "by_type": inline_serializer(
+                            name="MovementsByType",
+                            many=True,
+                            fields={
+                                "movement_type": serializers.CharField(),
+                                "count": serializers.IntegerField(),
+                                "total_quantity": serializers.DecimalField(
+                                    max_digits=12, decimal_places=2
+                                ),
+                            },
+                        ),
+                        "by_reason": inline_serializer(
+                            name="MovementsByReason",
+                            many=True,
+                            fields={
+                                "reason": serializers.CharField(),
+                                "count": serializers.IntegerField(),
+                                "total_quantity": serializers.DecimalField(
+                                    max_digits=12, decimal_places=2
+                                ),
+                            },
+                        ),
+                        "top_products": inline_serializer(
+                            name="TopProductsMovement",
+                            many=True,
+                            fields={
+                                "product_id": serializers.UUIDField(),
+                                "product_name": serializers.CharField(),
+                                "product_sku": serializers.CharField(),
+                                "total_movements": serializers.IntegerField(),
+                                "total_quantity": serializers.DecimalField(
+                                    max_digits=12, decimal_places=2
+                                ),
+                            },
+                        ),
+                        "generated_at": serializers.DateTimeField(),
+                    },
+                ),
+                description="Reporte generado exitosamente",
+            ),
+            **error_401("report", action="movement_report"),
+            **error_403("report", action="movement_report"),
+            **error_500("report", action="movement_report"),
+        },
+    )
+    @action(detail=False, methods=["get"], url_path="movement-report")
     def movement_report(self, request):
         """
         Movement report for a date range.
@@ -154,7 +310,45 @@ class ReportViewSet(viewsets.ViewSet):
             }
         )
 
-    @action(detail=False, methods=["get"])
+    @extend_schema(
+        tags=["Reports"],
+        summary="Análisis por categoría",
+        description=(
+            "Genera un desglose detallado del inventario agrupado por categorías, "
+            "mostrando el conteo de productos, stock físico total y la valuación monetaria "
+            "ordenada de mayor a menor valor."
+        ),
+        responses={
+            **success_200(
+                inline_serializer(
+                    name="CategoryAnalysisResponse",
+                    fields={
+                        "categories": inline_serializer(
+                            name="CategoryAnalysisItem",
+                            many=True,
+                            fields={
+                                "id": serializers.IntegerField(),
+                                "name": serializers.CharField(),
+                                "total_products": serializers.IntegerField(),
+                                "total_stock": serializers.DecimalField(
+                                    max_digits=12, decimal_places=2
+                                ),
+                                "total_value": serializers.DecimalField(
+                                    max_digits=20, decimal_places=2
+                                ),
+                            },
+                        ),
+                        "generated_at": serializers.DateTimeField(),
+                    },
+                ),
+                description="Análisis de categorías generado exitosamente",
+            ),
+            **error_401("report", action="category_analysis"),
+            **error_403("report", action="category_analysis"),
+            **error_500("report", action="category_analysis"),
+        },
+    )
+    @action(detail=False, methods=["get"], url_path="category-analysis")
     def category_analysis(self, request):
         """
         Analysis by category.
@@ -194,7 +388,49 @@ class ReportViewSet(viewsets.ViewSet):
             }
         )
 
-    @action(detail=False, methods=["get"])
+    @extend_schema(
+        tags=["Reports"],
+        summary="Ranking de productos (Top)",
+        description=(
+            "Obtiene los productos líderes según diferentes métricas: valor de inventario, "
+            "cantidad de stock físico o precio de venta."
+        ),
+        parameters=[
+            OpenApiParameter(
+                name="metric",
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                description="Criterio de ordenamiento para el ranking",
+                enum=["stock_value", "stock_quantity", "price"],
+                default="stock_value",
+            ),
+            OpenApiParameter(
+                name="limit",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.QUERY,
+                description="Cantidad de productos a retornar",
+                default=10,
+            ),
+        ],
+        responses={
+            **success_200(
+                inline_serializer(
+                    name="TopProductsResponse",
+                    fields={
+                        "metric": serializers.CharField(),
+                        "limit": serializers.IntegerField(),
+                        "products": ProductListSerializer(many=True),
+                        "generated_at": serializers.DateTimeField(),
+                    },
+                ),
+                description="Ranking generado exitosamente",
+            ),
+            **error_401("report", action="top_products"),
+            **error_403("report", action="top_products"),
+            **error_500("report", action="top_products"),
+        },
+    )
+    @action(detail=False, methods=["get"], url_path="top-products")
     def top_products(self, request):
         """
         Top products by different criteria.
