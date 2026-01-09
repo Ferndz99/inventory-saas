@@ -34,6 +34,8 @@ ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=["localhost", "127.0.0.1"])  #
 
 FRONTEND_DOMAIN = "http://localhost:3000"
 
+SITE_ID = 1
+
 """
 --------------------
 AUTHENTICATION CONFIGURATION
@@ -83,6 +85,7 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "django.contrib.sites",
     # third
     "rest_framework",
     "rest_framework_simplejwt.token_blacklist",
