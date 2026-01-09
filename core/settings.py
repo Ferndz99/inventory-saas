@@ -32,6 +32,8 @@ DEBUG = env("DEBUG")
 
 ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=["localhost", "127.0.0.1"])  # type: ignore
 
+FRONTEND_DOMAIN = "http://localhost:3000"
+
 """
 --------------------
 AUTHENTICATION CONFIGURATION
