@@ -1061,8 +1061,8 @@ class AccountLoginAPIView(APIView):
             key="refresh_token",
             value=str(refresh),
             httponly=True,
-            secure=not settings.DEBUG,  # True en producción
-            samesite="Lax" if settings.DEBUG else "None",
+            secure=False,
+            samesite='Lax',
             max_age=7 * 24 * 60 * 60,  # 7 días
             path="/",
         )
@@ -1270,7 +1270,7 @@ class AccountLogoutView(APIView):
 
             response.delete_cookie(
                 key="refresh_token",
-                samesite="Lax" if settings.DEBUG else "None",  # type: ignore
+                samesite='Lax', 
                 path="/",  # type: ignore
             )
 
