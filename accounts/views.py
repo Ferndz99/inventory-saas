@@ -1,13 +1,17 @@
 from django.conf import settings
 
-from rest_framework import status
+from rest_framework import status, serializers
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.exceptions import ValidationError
 from rest_framework.decorators import action
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.exceptions import TokenError
+from rest_framework.decorators import (
+    api_view,
+    permission_classes,
+)
 
 from djoser.views import UserViewSet
 from djoser.serializers import UserSerializer
@@ -17,6 +21,7 @@ from drf_spectacular.utils import (
     extend_schema_view,
     OpenApiResponse,
     OpenApiExample,
+    inline_serializer
 )
 
 from accounts.constants import DocTags
@@ -1062,7 +1067,7 @@ class AccountLoginAPIView(APIView):
             value=str(refresh),
             httponly=True,
             secure=False,
-            samesite='Lax',
+            samesite="Lax",
             max_age=7 * 24 * 60 * 60,  # 7 días
             path="/",
         )
@@ -1270,7 +1275,7 @@ class AccountLogoutView(APIView):
 
             response.delete_cookie(
                 key="refresh_token",
-                samesite='Lax', 
+                samesite="Lax",
                 path="/",  # type: ignore
             )
 
@@ -1281,3 +1286,85 @@ class AccountLogoutView(APIView):
 
         except Exception as exc:
             raise ValidationError({"error": [f"Unexpected logout error: {str(exc)}"]})
+
+
+@extend_schema(
+    tags=[DocTags.TAG_AUTHENTICATION],
+    summary="Verificar validez del token",
+    description=(
+        "Valida si el token de acceso JWT enviado en el encabezado Authorization "
+        "es válido y no ha expirado. "
+        "Este endpoint es utilizado por el frontend para proteger rutas privadas "
+        "como el dashboard y confirmar una sesión activa."
+    ),
+    responses={
+        status.HTTP_200_OK: inline_serializer(
+            name="VerifyTokenResponse",
+            fields={
+                "valid": serializers.BooleanField(
+                    help_text="Indica si el token es válido"
+                ),
+                "user_id": serializers.IntegerField(
+                    help_text="ID del usuario autenticado"
+                ),
+                "email": serializers.EmailField(
+                    help_text="Email del usuario autenticado"
+                ),
+            },
+        ),
+        status.HTTP_401_UNAUTHORIZED: inline_serializer(
+            name="VerifyTokenError401",
+            fields={
+                "type": serializers.CharField(),
+                "title": serializers.CharField(),
+                "status": serializers.IntegerField(),
+                "detail": serializers.CharField(),
+                "instance": serializers.CharField(),
+            },
+        ),
+        status.HTTP_500_INTERNAL_SERVER_ERROR: inline_serializer(
+            name="VerifyTokenError500",
+            fields={
+                "type": serializers.CharField(),
+                "title": serializers.CharField(),
+                "status": serializers.IntegerField(),
+                "detail": serializers.CharField(),
+                "instance": serializers.CharField(),
+            },
+        ),
+    },
+    examples=[
+        OpenApiExample(
+            "Token válido",
+            status_codes=["200"],
+            value={
+                "valid": True,
+                "user_id": 12,
+                "email": "usuario@inventorycl.com",
+            },
+        ),
+        OpenApiExample(
+            "Token expirado o inválido",
+            status_codes=["401"],
+            value={
+                "type": "/errors/unauthorized",
+                "title": "Unauthorized",
+                "status": 401,
+                "detail": "El token es inválido o ha expirado.",
+                "instance": "/api/v1/auth/verify-token/",
+            },
+            description="Se retorna cuando el token JWT no es válido o ha expirado.",
+        ),
+    ],
+)
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def verify_token(request):
+    return Response(
+        {
+            "valid": True,
+            "user_id": request.user.id,
+            "email": request.user.email,
+        },
+        status=status.HTTP_200_OK,
+    )

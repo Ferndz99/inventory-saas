@@ -7,6 +7,7 @@ from accounts.views import (
     AccountLoginAPIView,
     TokenRefreshView,
     AccountLogoutView,
+    verify_token,
 )
 
 
@@ -17,5 +18,6 @@ urlpatterns = [
     path("auth/login/", AccountLoginAPIView.as_view(), name="account-login"),
     path("auth/logout/", AccountLogoutView.as_view(), name="account-logout"),
     path("auth/refresh/", TokenRefreshView.as_view(), name="token-refresh"),
+    path("auth/verify/", verify_token),
     path("", include(router.urls)),
 ]
