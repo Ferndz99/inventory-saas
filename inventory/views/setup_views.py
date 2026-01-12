@@ -8,8 +8,12 @@ from django.core.exceptions import ValidationError
 
 from drf_spectacular.utils import extend_schema, inline_serializer, OpenApiExample
 
-from inventory.models import Company, Warehouse
+from inventory.models import Company, TemplateAttribute, Warehouse
 from inventory.utils import error_400, error_401, error_500
+
+import logging
+
+logger = logging.getLogger("app")
 
 
 @extend_schema(
@@ -134,6 +138,7 @@ def setup_company(request):
     Called after user registers and optionally pays.
     """
     user = request.user
+    logger.debug(user)
 
     # Validar que el usuario no tenga empresa ya
     if user.has_company:
@@ -160,7 +165,11 @@ def setup_company(request):
     try:
         with transaction.atomic():
             # 1. Crear empresa
+            #TODO: AGREGAR VALIDACION POR RUT UNIQUE
+            logger.debug("bhbhj")
             company = Company.objects.create(name=company_name, rut=company_rut)
+
+            logger.debug(company)
 
             # 2. Asignar usuario a empresa como admin
             user.company = company
@@ -168,20 +177,20 @@ def setup_company(request):
             user.save()
 
             # 3. Crear bodega principal
-            warehouse = Warehouse.objects.create(
-                name="Bodega Principal", company=company, is_main=True
-            )
+            # warehouse = Warehouse.objects.create(
+            #     name="Bodega Principal", company=company, is_main=True
+            # )
 
             # 4. Crear categoría y plantilla por defecto (opcional)
-            from inventory.models import Category, Template
+            #from inventory.models import Category, Template
 
-            default_category = Category.objects.create(name="General", company=company)
+            # default_category = Category.objects.create(name="General", company=company)
 
-            default_template = Template.objects.create(
-                name="Plantilla Básica",
-                description="Plantilla inicial para productos",
-                company=company,
-            )
+            # default_template = Template.objects.create(
+            #     name="Plantilla Básica",
+            #     description="Plantilla inicial para productos",
+            #     company=company,
+            # )
 
             return Response(
                 {
@@ -196,11 +205,11 @@ def setup_company(request):
                         "company": company.id,
                         "role": user.role,
                     },
-                    "warehouse": {"id": warehouse.id, "name": warehouse.name},
-                    "defaults": {
-                        "category": default_category.id,
-                        "template": default_template.id,
-                    },
+                    #"warehouse": {"id": warehouse.id, "name": warehouse.name},
+                    # "defaults": {
+                    #     "category": default_category.id,
+                    #     "template": default_template.id,
+                    # },
                 },
                 status=status.HTTP_201_CREATED,
             )
@@ -323,17 +332,22 @@ def onboarding_progress(request):
     steps = {
         "has_categories": company.categories.filter(is_active=True).exists(),
         "has_templates": company.templates.filter(is_active=True).exists(),
-        "has_products": company.products.filter(is_active=True).exists(),
-        "has_stock": company.products.filter(
-            stock_records__current_quantity__gt=0
+        "has_attribute": company.custom_attributes.filter(is_active=True).exists(),
+        "has_assigned_attribute": TemplateAttribute.objects.filter(
+            template__company=company, is_active=True
         ).exists(),
-        "has_team": company.accounts.filter(is_active=True).count() > 1,
+        "has_products": company.products.filter(is_active=True).exists(),
+        # "has_stock": company.products.filter(
+        #     stock_records__current_quantity__gt=0
+        # ).exists(),
+        # "has_team": company.accounts.filter(is_active=True).count() > 1,
     }
 
     completed_steps = sum(steps.values())
     total_steps = len(steps)
-    progress = (completed_steps / total_steps) * 100
+    progress = round((completed_steps / total_steps) * 100, 0)
 
+    #TODO: crear un soslo objeto steps para evitar el mapeo.
     return Response(
         {
             "completed": progress,
@@ -342,9 +356,11 @@ def onboarding_progress(request):
             "steps": {
                 "create_category": steps["has_categories"],
                 "create_template": steps["has_templates"],
+                "create_attribute": steps["has_attribute"],
+                "assign_attribute": steps["has_assigned_attribute"],
                 "create_product": steps["has_products"],
-                "add_stock": steps["has_stock"],
-                "invite_team": steps["has_team"],
+                # "add_stock": steps["has_stock"],
+                # "invite_team": steps["has_team"],
             },
             "onboarding_completed": user.onboarding_completed,
         }
