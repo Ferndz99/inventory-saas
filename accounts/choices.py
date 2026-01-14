@@ -6,3 +6,4 @@ class RoleAccount(models.TextChoices):
     MANAGER = "manager"
     SELLER = "seller"
     VIEWER = "viewer"
+    USER = 'user', 'Usuario'
