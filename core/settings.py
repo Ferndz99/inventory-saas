@@ -48,12 +48,14 @@ AUTHENTICATION CONFIGURATION
 --------------------
 Custom user model and JWT settings.
 """
-PRIVATE_KEY = env("JWT_PRIVATE_KEY").encode()
-# with open(BASE_DIR / env("PRIVATE_KEY_PATH"), "rb") as f:  # type: ignore
-#     PRIVATE_KEY = f.read()
-PUBLIC_KEY = env("JWT_PUBLIC_KEY").encode()
-# with open(BASE_DIR / env("PUBLIC_KEY_PATH"), "rb") as f:  # type: ignore
-#     PUBLIC_KEY = f.read()
+PRIVATE_KEY = None
+# PRIVATE_KEY = env("JWT_PRIVATE_KEY").encode()
+with open(BASE_DIR / env("JWT_PRIVATE_KEY"), "rb") as f:  # type: ignore
+    PRIVATE_KEY = f.read()
+# PUBLIC_KEY = env("JWT_PUBLIC_KEY").encode()
+PUBLIC_KEY = None
+with open(BASE_DIR / env("JWT_PUBLIC_KEY"), "rb") as f:  # type: ignore
+    PUBLIC_KEY = f.read()
 
 
 ALGORITHM = env("ALGORITHM")
