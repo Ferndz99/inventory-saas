@@ -7,7 +7,6 @@ from drf_spectacular.views import (
     SpectacularSwaggerView,
 )
 
-from debug_toolbar.toolbar import debug_toolbar_urls
 
 urlpatterns = [
     path("admin/", admin.site.urls),
@@ -24,4 +23,4 @@ urlpatterns = [
     ),
     path("api/v1/", include("accounts.urls")),
     path("api/v1/", include("inventory.urls")),
-] + debug_toolbar_urls()
+]
