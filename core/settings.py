@@ -97,7 +97,7 @@ INSTALLED_APPS = [
     "rest_framework_simplejwt.token_blacklist",
     "corsheaders",
     "drf_spectacular",
-    #"debug_toolbar",
+    # "debug_toolbar",
     "djoser",
     "django_filters",
     "djmoney",
@@ -116,7 +116,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
-    #"debug_toolbar.middleware.DebugToolbarMiddleware",
+    # "debug_toolbar.middleware.DebugToolbarMiddleware",
 ]
 
 
@@ -455,7 +455,6 @@ if not DEBUG:
     SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
 
-
 """
 --------------------
 URL AND TEMPLATE CONFIGURATION
@@ -488,14 +487,7 @@ DATABASE CONFIGURATION
 By default, it uses SQLite for development.
 """
 DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.postgresql",
-        "NAME": env("DB_NAME", default="tech_ecommerce"),  # type: ignore
-        "USER": env("DB_USER", default="postgres"),  # type: ignore
-        "PASSWORD": env("DB_PASSWORD"),
-        "HOST": env("DB_HOST", default="localhost"),  # type: ignore
-        "PORT": env("DB_PORT", default="5432"),  # type: ignore
-    }
+    "default": env.db(),
 }
 
 
@@ -543,4 +535,3 @@ Configuration for serving CSS, JS, static images, and user-uploaded files.
 """
 STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
-
