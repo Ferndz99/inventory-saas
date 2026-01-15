@@ -314,14 +314,18 @@ CORS HEADERS CONFIGURATION
 Manages which origins (domains) can make requests to the API.
 Allows all requests in DEBUG mode, restricts them in Production.
 """
-CORS_ALLOW_ALL_ORIGINS = DEBUG
+CORS_ALLOW_CREDENTIALS = True  # sigue igual
 
-CORS_ALLOWED_ORIGINS = env.list(
-    "CORS_ALLOWED_ORIGINS",
-    default=["http://localhost:3000"] if DEBUG else [],
-)
+if DEBUG:
+    CORS_ALLOW_ALL_ORIGINS = True
+    CORS_ALLOWED_ORIGINS = ["http://localhost:3000"]
+else:
+    CORS_ALLOW_ALL_ORIGINS = False
+    CORS_ALLOWED_ORIGINS = env.list(
+        "CORS_ALLOWED_ORIGINS",
+        default=[],  # No importa, ahora usaremos la variable de entorno
+    )
 
-CORS_ALLOW_CREDENTIALS = True
 
 
 """
