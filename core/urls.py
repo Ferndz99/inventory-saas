@@ -22,4 +22,6 @@ urlpatterns = [
         SpectacularRedocView.as_view(url_name="schema"),
         name="redoc",
     ),
+    path("api/v1/", include("accounts.urls")),
+    path("api/v1/", include("inventory.urls")),
 ] + debug_toolbar_urls()

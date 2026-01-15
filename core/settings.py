@@ -15,7 +15,10 @@ env = environ.Env()
 
 environ.Env.read_env(os.path.join(BASE_DIR, ".env"))
 
-BACKEND_URL = "http://localhost:8000"
+BACKEND_URL = env(
+    "BACKEND_URL",
+    default="http://localhost:8000",
+)
 
 LOGS_DIR = BASE_DIR / "logs"
 LOGS_DIR.mkdir(exist_ok=True)
@@ -28,9 +31,16 @@ SECURITY CONFIGURATION AND MAIN ENVIRONMENT
 """
 SECRET_KEY = env("SECRET_KEY")
 
-DEBUG = env("DEBUG")
+DEBUG = env.bool("DEBUG", default=False)
 
 ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=["localhost", "127.0.0.1"])  # type: ignore
+
+FRONTEND_DOMAIN = env(
+    "FRONTEND_DOMAIN",
+    default="http://localhost:3000",
+)
+
+SITE_ID = 1
 
 """
 --------------------
@@ -38,19 +48,21 @@ AUTHENTICATION CONFIGURATION
 --------------------
 Custom user model and JWT settings.
 """
-PRIVATE_KEY = None
-with open(BASE_DIR / env("PRIVATE_KEY_PATH"), "rb") as f:  # type: ignore
-    PRIVATE_KEY = f.read()
+PRIVATE_KEY = env("JWT_PRIVATE_KEY").encode()
+# with open(BASE_DIR / env("PRIVATE_KEY_PATH"), "rb") as f:  # type: ignore
+#     PRIVATE_KEY = f.read()
+PUBLIC_KEY = env("JWT_PUBLIC_KEY").encode()
+# with open(BASE_DIR / env("PUBLIC_KEY_PATH"), "rb") as f:  # type: ignore
+#     PUBLIC_KEY = f.read()
 
-PUBLIC_KEY = None
-with open(BASE_DIR / env("PUBLIC_KEY_PATH"), "rb") as f:  # type: ignore
-    PUBLIC_KEY = f.read()
 
 ALGORITHM = env("ALGORITHM")
 
 ACCESS_TOKEN_LIFETIME = int(env("ACCESS_TOKEN_LIFETIME"))  # type: ignore
 
 REFRESH_TOKEN_LIFETIME = int(env("REFRESH_TOKEN_LIFETIME"))  # type: ignore
+
+AUTH_USER_MODEL = "accounts.Account"
 
 
 """
@@ -79,26 +91,32 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "django.contrib.sites",
     # third
     "rest_framework",
     "rest_framework_simplejwt.token_blacklist",
     "corsheaders",
     "drf_spectacular",
-    "debug_toolbar",
+    #"debug_toolbar",
     "djoser",
     "django_filters",
     "djmoney",
+    # local
+    "accounts",
+    "inventory",
 ]
 
 MIDDLEWARE = [
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
+    "corsheaders.middleware.CorsMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
-    "debug_toolbar.middleware.DebugToolbarMiddleware",
+    #"debug_toolbar.middleware.DebugToolbarMiddleware",
 ]
 
 
@@ -296,12 +314,13 @@ CORS HEADERS CONFIGURATION
 Manages which origins (domains) can make requests to the API.
 Allows all requests in DEBUG mode, restricts them in Production.
 """
+CORS_ALLOW_ALL_ORIGINS = DEBUG
+
 CORS_ALLOWED_ORIGINS = env.list(
     "CORS_ALLOWED_ORIGINS",
-    default=["http://localhost:3000", "http://localhost:8000"]
-    if DEBUG
-    else ["https://example.com"],  # type: ignore
+    default=["http://localhost:3000"] if DEBUG else [],
 )
+
 CORS_ALLOW_CREDENTIALS = True
 
 
@@ -433,6 +452,8 @@ if not DEBUG:
     X_FRAME_OPTIONS = "DENY"
     SECURE_CONTENT_TYPE_NOSNIFF = True
     SECURE_BROWSER_XSS_FILTER = True
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+
 
 
 """
@@ -520,4 +541,6 @@ STATIC AND MEDIA FILES
 --------------------
 Configuration for serving CSS, JS, static images, and user-uploaded files.
 """
-STATIC_URL = "static/"
+STATIC_URL = "/static/"
+STATIC_ROOT = BASE_DIR / "staticfiles"
+
