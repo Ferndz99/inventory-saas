@@ -103,32 +103,6 @@ logger = logging.getLogger("app")
             },
         ),
     },
-    examples=[
-        OpenApiExample(
-            "Error de Validación (RUT Duplicado)",
-            status_codes=["400"],
-            value={
-                "type": "/errors/validation-error",
-                "title": "Validation Error",
-                "status": 400,
-                "detail": {
-                    "company_rut": ["Ya existe una empresa registrada con este RUT."]
-                },
-                "instance": "/api/v1/setup-company/",
-            },
-        ),
-        OpenApiExample(
-            "Error de Permiso (Empresa ya vinculada)",
-            status_codes=["403"],
-            value={
-                "type": "/errors/forbidden",
-                "title": "Forbidden",
-                "status": 403,
-                "detail": "El usuario ya está vinculado a una empresa.",
-                "instance": "/api/v1/setup-company/",
-            },
-        ),
-    ],
 )
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
