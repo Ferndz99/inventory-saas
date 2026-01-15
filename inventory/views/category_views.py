@@ -26,7 +26,7 @@ from inventory.utils import (
 )
 
 
-@extend_schema(tags=["Categorias del Sistema"])
+@extend_schema(tags=["Categories"])
 @extend_schema_view(
     list=extend_schema(
         summary="List",

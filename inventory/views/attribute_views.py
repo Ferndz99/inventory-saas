@@ -21,7 +21,7 @@ from inventory.utils import (
 )
 
 
-@extend_schema(tags=["Atributos del Sistema"])
+@extend_schema(tags=["Atributes"])
 @extend_schema_view(
     list=extend_schema(
         summary="List",
@@ -112,7 +112,7 @@ class GlobalAttributeViewSet(viewsets.ModelViewSet):
         return super().get_permissions()
 
 
-@extend_schema(tags=["Atributos del Sistema"])
+@extend_schema(tags=["Atributes"])
 @extend_schema_view(
     list=extend_schema(
         summary="List",
