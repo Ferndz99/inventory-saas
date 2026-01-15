@@ -1,6 +1,11 @@
 # Plataforma SaaS de Gestión de Inventario
 Sistema back end para la gestion de inventario basado en plantillas con autenticacion cont tokens JWT. Este es un MVP que apunta a solucionar la problematica de negocios pequeños en Chile en cuanto a la gestion de inventarios, este software busca reemplazar a excel como fuente de recopilacion de datos de negocios como retail, carnicerias, ferreterias, minimarket, etc. 
 
+## Demo y Documentacion
+- **API Base URL:** https://inventory-saas-71h9.onrender.com
+- **OpenAPI (Redoc):** https://inventory-saas-71h9.onrender.com/api/schema/redoc/
+- **OpenAPI (Swagger-ui):** https://inventory-saas-71h9.onrender.com/api/schema/swagger-ui/
+
 ## Motivacion
 El proyecto nace a partir de mi formación teórica en Administración de Empresas y trabajos de apoyo a pequeñas empresas, donde se gestionaban inventarios y procesos operativos mediante Excel, con limitaciones en control, escalabilidad y trazabilidad.
 
@@ -29,4 +34,5 @@ Proyecto dividido en dos repositorios:
 
 ## Estado del proyecto
 Proyecto en desarrollo activo.
+
 
